@@ -1,5 +1,5 @@
 ﻿----------------------------------------------------------------------
--- 	L00: Leatrix Plus 5.4.11 (17th May 2014) (www.leatrix.com)
+-- 	L00: Leatrix Plus 5.4.14 (4th June 2014) (www.leatrix.com)
 ---------------------------------------------------------------------- 
 --[[
 		00: Start					Shows where everything is
@@ -38,7 +38,7 @@
 	local void
 
 --	Version control
-	LeaPlusLC["AddonVer"] = "5.4.11"
+	LeaPlusLC["AddonVer"] = "5.4.14"
 	LeaPlusLC["InterfaceVer"] = "50400"
 
 --	Initialise variables
@@ -79,10 +79,10 @@
 		end
 
 		-- Player chains
-		if (LeaPlusLC["ShowElitePlayerChain"] ~= LeaPlusDB["ShowElitePlayerChain"]) or LeaPlusLC["ShowElitePlayerChain"] == "Off" then
-			LeaPlusLC:LockItem(LeaPlusCB["ShowRarePlayerChain"],true)
+		if (LeaPlusLC["ShowPlayerChain"] ~= LeaPlusDB["ShowPlayerChain"]) or LeaPlusLC["ShowPlayerChain"] == "Off" then
+			LeaPlusLC:LockItem(LeaPlusCB["ModPlayerChain"],true)
 		else
-			LeaPlusLC:LockItem(LeaPlusCB["ShowRarePlayerChain"],false)
+			LeaPlusLC:LockItem(LeaPlusCB["ModPlayerChain"],false)
 		end
 
 		-- Protect privacy
@@ -329,7 +329,7 @@
 		or	(LeaPlusLC["AutoEnName"]			~= LeaPlusDB["AutoEnName"])				-- Toggle enemy plates
 		or	(LeaPlusLC["ClassColPlayer"]		~= LeaPlusDB["ClassColPlayer"])			-- Player in class color
 		or	(LeaPlusLC["ClassColTarget"]		~= LeaPlusDB["ClassColTarget"])			-- Target in class color
-		or	(LeaPlusLC["ShowElitePlayerChain"]	~= LeaPlusDB["ShowElitePlayerChain"])	-- Show player chain
+		or	(LeaPlusLC["ShowPlayerChain"]		~= LeaPlusDB["ShowPlayerChain"])		-- Show player chain
 
 		-- System
 		or	(LeaPlusLC["ManageZoomLevel"]		~= LeaPlusDB["ManageZoomLevel"])		-- Max camera distance
@@ -778,8 +778,8 @@
 
 		LoadVarChk("ClassColPlayer", "Off")				-- Player in class color
 		LoadVarChk("ClassColTarget", "Off")				-- Target in class color
-		LoadVarChk("ShowElitePlayerChain", "Off")		-- Show player chain
-		LoadVarChk("ShowRarePlayerChain", "Off")		-- Make it silver
+		LoadVarChk("ShowPlayerChain", "Off")			-- Show player chain
+		LoadVarNum("PlayerChainMenu", 2, 1, 3)			-- Player chain dropdown value
 
 		-- System
 		LoadVarChk("NoDeathEffect", "Off")				-- Hide death effect
@@ -991,8 +991,8 @@
 
 		LeaPlusDB["ClassColPlayer"]			= LeaPlusLC["ClassColPlayer"]
 		LeaPlusDB["ClassColTarget"]			= LeaPlusLC["ClassColTarget"]
-		LeaPlusDB["ShowElitePlayerChain"]	= LeaPlusLC["ShowElitePlayerChain"]
-		LeaPlusDB["ShowRarePlayerChain"]	= LeaPlusLC["ShowRarePlayerChain"]
+		LeaPlusDB["ShowPlayerChain"]		= LeaPlusLC["ShowPlayerChain"]
+		LeaPlusDB["PlayerChainMenu"]		= LeaPlusLC["PlayerChainMenu"]
 
 		-- System
 		LeaPlusDB["NoDeathEffect"] 			= LeaPlusLC["NoDeathEffect"]
@@ -1049,18 +1049,6 @@
 
 --	The Live bit
 	function LeaPlusLC:Live()
-
-		----------------------------------------------------------------------
-		--	Show player chain
-		----------------------------------------------------------------------
-
-		if LeaPlusDB["ShowElitePlayerChain"] == "On" then -- Checks global
-			if LeaPlusLC["ShowRarePlayerChain"] == "On" then
-				PlayerFrameTexture:SetTexture("Interface\\TargetingFrame\\UI-TargetingFrame-Rare.blp");
-			else
-				PlayerFrameTexture:SetTexture("Interface\\TargetingFrame\\UI-TargetingFrame-Elite.blp");
-			end
-		end
 
 		----------------------------------------------------------------------
 		--	Automatically accept Dungeon Finder queue requests
@@ -1333,6 +1321,72 @@
 		SetCVar("chatStyle", "classic")
 		InterfaceOptionsSocialPanelChatStyleButton:Disable()
 		InterfaceOptionsSocialPanelChatStyleText:SetAlpha(0.7)
+
+		----------------------------------------------------------------------
+		--	Show player chain
+		----------------------------------------------------------------------
+
+		if LeaPlusDB["ShowPlayerChain"] == "On" then -- Checks global
+
+			-- Create configuration panel
+			local ChainPanel = LeaPlusLC:CreateSidePanel("Player Chain", 164, 160)
+
+			-- Add dropdown menu
+			LeaPlusLC:CreateDropDown("PlayerChainMenu", "Style", ChainPanel, 146, "TOPLEFT", 10, -100, {"RARE", "ELITE", "RARE ELITE"}, "")
+
+			-- Set chain style
+			local function SetChainStyle()
+				-- Get dropdown menu valie
+				local chain = LeaPlusLC["PlayerChainMenu"] -- Numeric value
+				-- Set chain style according to value
+				if chain == 1 then -- Rare
+					PlayerFrameTexture:SetTexture("Interface\\TargetingFrame\\UI-TargetingFrame-Rare.blp");
+				elseif chain == 2 then -- Elite
+					PlayerFrameTexture:SetTexture("Interface\\TargetingFrame\\UI-TargetingFrame-Elite.blp");
+				elseif chain == 3 then -- Rare Elite
+					PlayerFrameTexture:SetTexture("Interface\\TargetingFrame\\UI-TargetingFrame-Rare-Elite.blp");
+				end
+			end
+
+			-- Set style on startup
+			SetChainStyle()
+
+			-- Set style when a drop menu is selected (procs when the list is hidden)
+			LeaPlusCB["ListFramePlayerChainMenu"]:HookScript("OnHide", function()
+				SetChainStyle()
+			end)
+
+			-- Create save button
+			LeaPlusLC:CreateButton("SavePlayerChainBtn", ChainPanel, "Save", "BOTTOMLEFT", 10, 10, 70, 25, true, "")
+			LeaPlusCB["SavePlayerChainBtn"]:SetScript("OnClick", function()
+				LeaPlusCB["ListFramePlayerChainMenu"]:Hide(); -- Hide the dropdown list
+				ChainPanel:Hide();
+				LeaPlusLC["PageF"]:Show();
+				LeaPlusLC["Page6"]:Show();
+				return
+			end)
+
+			-- Create reset button
+			LeaPlusLC:CreateButton("ResetPlayerChainBtn", ChainPanel, "Reset", "BOTTOMLEFT", 80, 10, 70, 25, true, "")
+			LeaPlusCB["ResetPlayerChainBtn"]:SetScript("OnClick", function()
+				LeaPlusCB["ListFramePlayerChainMenu"]:Hide(); -- Hide the dropdown list
+				LeaPlusLC["PlayerChainMenu"] = 2
+				ChainPanel:Hide(); ChainPanel:Show();
+				SetChainStyle()
+			end)
+
+			-- Show the panel when the configuration button is clicked
+			LeaPlusCB["ModPlayerChain"]:SetScript("OnClick", function()
+				if IsShiftKeyDown() and IsControlKeyDown() then
+					LeaPlusLC["PlayerChainMenu"] = 3;
+					SetChainStyle();
+				else
+					LeaPlusLC:HideFrames();
+					ChainPanel:Show();
+				end
+			end)
+
+		end
 
 		----------------------------------------------------------------------
 		-- Show raid frame toggle button
@@ -1769,10 +1823,10 @@
 
 					elseif PlayerClass == "MAGE" then
 						SpellEB[1]:SetText("11426"); 	SpellEB["1Stack"]:SetText("");	LeaPlusDC["Spell1Pet"] = 0; -- Ice Barrier
-						SpellEB[2]:SetText("48108"); 	SpellEB["2Stack"]:SetText("");	LeaPlusDC["Spell2Pet"] = 0; -- Pyroblast!
-						SpellEB[3]:SetText("116257"); 	SpellEB["3Stack"]:SetText(""); 	LeaPlusDC["Spell3Pet"] = 0; -- Invoker's Energy
-						SpellEB[4]:SetText(""); 		SpellEB["4Stack"]:SetText(""); 	LeaPlusDC["Spell4Pet"] = 0;
-						SpellEB[5]:SetText("130"); 		SpellEB["5Stack"]:SetText(""); 	LeaPlusDC["Spell5Pet"] = 0; -- Slow Fall
+						SpellEB[2]:SetText("108839"); 	SpellEB["2Stack"]:SetText("");	LeaPlusDC["Spell2Pet"] = 0; -- Ice Floes
+						SpellEB[3]:SetText(""); 		SpellEB["3Stack"]:SetText(""); 	LeaPlusDC["Spell3Pet"] = 0;
+						SpellEB[4]:SetText("61316"); 	SpellEB["4Stack"]:SetText(""); 	LeaPlusDC["Spell4Pet"] = 0; -- Dalaran Brilliance
+						SpellEB[5]:SetText("116257"); 	SpellEB["5Stack"]:SetText(""); 	LeaPlusDC["Spell5Pet"] = 0; -- Invoker's Energy
 
 					elseif PlayerClass == "WARRIOR" then
 						SpellEB[1]:SetText("32216");	SpellEB["1Stack"]:SetText(""); 	LeaPlusDC["Spell1Pet"] = 0; -- Victory Rush
@@ -1790,28 +1844,28 @@
 
 					elseif PlayerClass == "PRIEST" then
 						SpellEB[1]:SetText("17"); 		SpellEB["1Stack"]:SetText(""); 	LeaPlusDC["Spell1Pet"] = 0; -- Power Word: Shield
-						SpellEB[2]:SetText(""); 		SpellEB["2Stack"]:SetText(""); 	LeaPlusDC["Spell2Pet"] = 0;
+						SpellEB[2]:SetText("139"); 		SpellEB["2Stack"]:SetText(""); 	LeaPlusDC["Spell2Pet"] = 0; -- Renew
 						SpellEB[3]:SetText(""); 		SpellEB["3Stack"]:SetText(""); 	LeaPlusDC["Spell3Pet"] = 0;
 						SpellEB[4]:SetText(""); 		SpellEB["4Stack"]:SetText(""); 	LeaPlusDC["Spell4Pet"] = 0;
 						SpellEB[5]:SetText("21562"); 	SpellEB["5Stack"]:SetText(""); 	LeaPlusDC["Spell5Pet"] = 0; -- Power Word: Fortitude
 
 					elseif PlayerClass == "SHAMAN" then
 						SpellEB[1]:SetText("324"); 		SpellEB["1Stack"]:SetText(""); 	LeaPlusDC["Spell1Pet"] = 0; -- Lightning Shield
-						SpellEB[2]:SetText("53817"); 	SpellEB["2Stack"]:SetText("5");	LeaPlusDC["Spell2Pet"] = 0; -- Maelstrom Weapon
-						SpellEB[3]:SetText("53817"); 	SpellEB["3Stack"]:SetText("5"); LeaPlusDC["Spell3Pet"] = 0; -- Maelstrom Weapon
-						SpellEB[4]:SetText("53817"); 	SpellEB["4Stack"]:SetText("5"); LeaPlusDC["Spell4Pet"] = 0; -- Maelstrom Weapon
-						SpellEB[5]:SetText("53817"); 	SpellEB["5Stack"]:SetText("5"); LeaPlusDC["Spell5Pet"] = 0; -- Maelstrom Weapon
-		
-					elseif PlayerClass == "ROGUE" then
-						SpellEB[1]:SetText("5171");		SpellEB["1Stack"]:SetText(""); 	LeaPlusDC["Spell1Pet"] = 0; -- Slice abd Dice
-						SpellEB[2]:SetText("73651"); 	SpellEB["2Stack"]:SetText(""); 	LeaPlusDC["Spell2Pet"] = 0; -- Recuperate
+						SpellEB[2]:SetText("114893"); 	SpellEB["2Stack"]:SetText("");	LeaPlusDC["Spell2Pet"] = 0; -- Stone Bulwark
 						SpellEB[3]:SetText(""); 		SpellEB["3Stack"]:SetText(""); 	LeaPlusDC["Spell3Pet"] = 0;
 						SpellEB[4]:SetText(""); 		SpellEB["4Stack"]:SetText(""); 	LeaPlusDC["Spell4Pet"] = 0;
 						SpellEB[5]:SetText(""); 		SpellEB["5Stack"]:SetText(""); 	LeaPlusDC["Spell5Pet"] = 0;
+		
+					elseif PlayerClass == "ROGUE" then
+						SpellEB[1]:SetText("5171");		SpellEB["1Stack"]:SetText(""); 	LeaPlusDC["Spell1Pet"] = 0; -- Slice abd Dice
+						SpellEB[2]:SetText("1966"); 	SpellEB["2Stack"]:SetText(""); 	LeaPlusDC["Spell2Pet"] = 0; -- Feint
+						SpellEB[3]:SetText(""); 		SpellEB["3Stack"]:SetText(""); 	LeaPlusDC["Spell3Pet"] = 0;
+						SpellEB[4]:SetText(""); 		SpellEB["4Stack"]:SetText(""); 	LeaPlusDC["Spell4Pet"] = 0;
+						SpellEB[5]:SetText("73651"); 	SpellEB["5Stack"]:SetText(""); 	LeaPlusDC["Spell5Pet"] = 0; -- Recuperate
 
 					elseif PlayerClass == "MONK" then
 						SpellEB[1]:SetText("125359");	SpellEB["1Stack"]:SetText(""); 	LeaPlusDC["Spell1Pet"] = 0; -- Slice abd Dice
-						SpellEB[2]:SetText("125195"); 	SpellEB["2Stack"]:SetText("8"); LeaPlusDC["Spell2Pet"] = 0; -- Recuperate
+						SpellEB[2]:SetText("125195"); 	SpellEB["2Stack"]:SetText("");	LeaPlusDC["Spell2Pet"] = 0; -- Recuperate
 						SpellEB[3]:SetText(""); 		SpellEB["3Stack"]:SetText(""); 	LeaPlusDC["Spell3Pet"] = 0;
 						SpellEB[4]:SetText("116781"); 	SpellEB["4Stack"]:SetText(""); 	LeaPlusDC["Spell4Pet"] = 0; -- Legacy of the White Tiger
 						SpellEB[5]:SetText("117666"); 	SpellEB["5Stack"]:SetText(""); 	LeaPlusDC["Spell5Pet"] = 0; -- Legacy of the Emperor
@@ -2041,7 +2095,7 @@
 			end)
 
 			-- Show side panal when options panel button is clicked
-			local function ShowSide()
+			LeaPlusCB["ModStaticCoordsBtn"]:SetScript("OnClick", function()
 				if IsShiftKeyDown() and IsControlKeyDown() then
 					-- Private profile
 					LeaPlusLC["StaticCoords"] = "Off"
@@ -2057,9 +2111,7 @@
 					StaticPanel:Show();
 					LeaPlusLC:HideFrames();
 				end
-			end
-
-			LeaPlusCB["ModStaticCoordsBtn"]:SetScript("OnClick", ShowSide);
+			end);
 
 			-- Refresh map when zone changes if coordinates are showing (so that coordinates update to new zone)
 			local function UpdateMapZone()
@@ -2157,6 +2209,10 @@
 
 			-- Update the minimap on startup
 			UpdateMiniMergeButtons();
+
+			-- Hide controls during combat
+			SideMinimap:RegisterEvent("PLAYER_REGEN_DISABLED")
+			SideMinimap:SetScript("OnEvent", SideMinimap.Hide)
 
 			-- Hide minimap zone text
 			local function UpdateMiniZoneText()
@@ -2267,25 +2323,29 @@
 
 			-- Handler for options panel ? button
 			LeaPlusCB["ModMinimapBtn"]:SetScript("OnClick", function()
-				if IsShiftKeyDown() and IsControlKeyDown() then
-
-					-- Top secret profile (ssh!)
-					LeaPlusLC["MergeTrackBtn"] = "On"; UpdateMiniMergeButtons();
-					LeaPlusLC["HideMinimapZone"] = "On"
-					UpdateMiniZoneText(); ShowTextAndTip();
-					LeaPlusLC["HideMinimapTime"] = "Off"
-					UpdateClock();
-					LeaPlusLC["MinimapMouseZoom"] = "Off"
-					MiniZoomSet();
-					LeaPlusLC["MinimapScale"] = 1.30;
-					RefreshMinimap();
-
+				if LeaPlusLC:PlayerInCombat() then
+					return
 				else
+					if IsShiftKeyDown() and IsControlKeyDown() then
 
-					-- Show side panel
-					SideMinimap:Show();
-					LeaPlusLC:HideFrames();
+						-- Top secret profile (ssh!)
+						LeaPlusLC["MergeTrackBtn"] = "On"; UpdateMiniMergeButtons();
+						LeaPlusLC["HideMinimapZone"] = "On"
+						UpdateMiniZoneText(); ShowTextAndTip();
+						LeaPlusLC["HideMinimapTime"] = "Off"
+						UpdateClock();
+						LeaPlusLC["MinimapMouseZoom"] = "Off"
+						MiniZoomSet();
+						LeaPlusLC["MinimapScale"] = 1.30;
+						RefreshMinimap();
 
+					else
+
+						-- Show side panel
+						SideMinimap:Show();
+						LeaPlusLC:HideFrames();
+
+					end
 				end
 			end)
 
@@ -3084,16 +3144,7 @@
 
 				-- Middle button modifier
 				if arg1 == "MiddleButton" then
-
-					-- No modifier key toggles Recount
-					if (IsAddOnLoaded("Recount")) then
-						if Recount_MainWindow:IsShown() then
-							Recount.MainWindow:Hide();
-						else
-							Recount.MainWindow:Show();
-							Recount:RefreshMainWindow();
-						end
-					end
+					-- Nothing (yet)
 				end
 			end)
 
@@ -4610,7 +4661,7 @@
 				end
 			end
 
-			-- Prevent changes during combat (we don't want taint from rescaling protected frames during combat, do we?)
+			-- Prevent changes during combat
 			SideFrames:RegisterEvent("PLAYER_REGEN_DISABLED")
 			SideFrames:SetScript("OnEvent", function()
 				-- Hide controls frame
@@ -4880,16 +4931,20 @@
 
 			-- Handler for options panel ? button
 			LeaPlusCB["ModEnPanelBtn"]:SetScript("OnClick", function()
-				if IsShiftKeyDown() and IsControlKeyDown() then
-					-- Private profile
-					LeaPlusLC["AutoEnPets"] = "On"
-					LeaPlusLC["AutoEnGuardians"] = "On"
-					LeaPlusLC["AutoEnTotems"] = "On"
-					LeaPlusLC["AutoEnClassCol"] = "Off"
-					LeaPlusLC:EnPlateFunc();
+				if LeaPlusLC:PlayerInCombat() then
+					return
 				else
-					EnPanel:Show();
-					LeaPlusLC:HideFrames();
+					if IsShiftKeyDown() and IsControlKeyDown() then
+						-- Private profile
+						LeaPlusLC["AutoEnPets"] = "On"
+						LeaPlusLC["AutoEnGuardians"] = "On"
+						LeaPlusLC["AutoEnTotems"] = "On"
+						LeaPlusLC["AutoEnClassCol"] = "Off"
+						LeaPlusLC:EnPlateFunc();
+					else
+						EnPanel:Show();
+						LeaPlusLC:HideFrames();
+					end
 				end
 			end)
 
@@ -4899,6 +4954,10 @@
 					EnPanel:Hide() 
 				end
 			end)
+
+			-- Hide panel if combat starts (to prevent CVAR taint)
+			EnPanel:RegisterEvent("PLAYER_REGEN_DISABLED")
+			EnPanel:SetScript("OnEvent", EnPanel.Hide)
 
 			-- Function to set console variables
 			local function EnPlateFunc()
@@ -5006,46 +5065,47 @@
 			-- Reload UI if chat windows are reset by the user
 			hooksecurefunc("FCF_ResetChatWindows", ReloadUI)
 
-			-- Ensure combat log is docked (else it's confusing)
-			if not ChatFrame2.isDocked then 
+			-- Ensure combat log is docked
+			if ChatFrame2.isDocked then 
+	
+				-- Function to setup the combat log
+				local function SetupCombat()
+
+					ChatFrame2Tab:SetPoint("BOTTOMLEFT", ChatFrame1Tab, "BOTTOMRIGHT", 0, 0)
+
+					if ChatFrame2Tab:IsMouseEnabled() == nil and 
+						ChatFrame2Tab:GetText() == nil and
+						ChatFrame2Tab:GetScale() < 1 and
+						ChatFrame2Tab:GetWidth() < 1 and
+						ChatFrame2Tab:GetHeight() < 1 then
+					else
+						ChatFrame2Tab:EnableMouse(false)
+						ChatFrame2Tab:SetText("")
+						ChatFrame2Tab:SetScale(0.01)
+						ChatFrame2Tab:SetWidth(0.01)
+						ChatFrame2Tab:SetHeight(0.01)		
+					end
+
+				end
+
+				-- Setup combat log at startup
+				SetupCombat()
+
+				-- Run script when tab 3 is visible
+				ChatFrame3Tab:SetScript("OnShow", function() 
+					SetupCombat() 
+					ChatFrame3Tab:SetScript("OnShow", nil) 
+				end)
+
+				-- Run script when tabs are assigned by the client
+				hooksecurefunc("FCF_SetTabPosition", SetupCombat)
+
+			else
 
 				-- If combat log is undocked, do nothing (can't dock it as doing so taints the UI)
 				LeaPlusLC:Print("Combat log cannot be hidden while undocked.")
-				return
 
 			end
-	
-			-- Function to setup the combat log
-			local function SetupCombat()
-
-				ChatFrame2Tab:SetPoint("BOTTOMLEFT", ChatFrame1Tab, "BOTTOMRIGHT", 0, 0)
-
-				if ChatFrame2Tab:IsMouseEnabled() == nil and 
-					ChatFrame2Tab:GetText() == nil and
-					ChatFrame2Tab:GetScale() < 1 and
-					ChatFrame2Tab:GetWidth() < 1 and
-					ChatFrame2Tab:GetHeight() < 1 then
-				else
-					ChatFrame2Tab:EnableMouse(false)
-					ChatFrame2Tab:SetText("")
-					ChatFrame2Tab:SetScale(0.01)
-					ChatFrame2Tab:SetWidth(0.01)
-					ChatFrame2Tab:SetHeight(0.01)		
-				end
-
-			end
-
-			-- Setup combat log at startup
-			SetupCombat()
-
-			-- Run script when tab 3 is visible
-			ChatFrame3Tab:SetScript("OnShow", function() 
-				SetupCombat() 
-				ChatFrame3Tab:SetScript("OnShow", nil) 
-			end)
-
-			-- Run script when tabs are assigned by the client
-			hooksecurefunc("FCF_SetTabPosition", SetupCombat)
 
 		end
 
@@ -5063,7 +5123,11 @@
 				-- Get rep for each faction ID
 				local tillerind = select(3, GetFactionInfoByID(v)) or 0
 				-- If rep isn't exalted, set tillerdone to 9
-				if tillerind and tillerind ~= 8 then tillerdone = 9 end
+				if tillerind then
+					if tillerind ~= 6 then
+						tillerdone = 9
+					end
+				end
 			end
 
 			-- If tillerdone is 9, some rep isn't exalted so we need the alert
@@ -5077,7 +5141,6 @@
 						PlaySoundFile("Sound\\Interface\\RaidWarning.ogg"); 
 					end
 				end)
-
 			end
 
 		end
@@ -6332,16 +6395,6 @@
 			end
 		end
 
-		-- Universal group color
-		if LeaPlusDB["UnivGroupColor"] == "On" then
-			if wipe or (not wipe and LeaPlusLC["UnivGroupColor"] == "Off") then
-				ChangeChatColor("RAID", 1, 0.50, 0)
-				ChangeChatColor("RAID_LEADER", 1, 0.28, 0.04)
-				ChangeChatColor("INSTANCE_CHAT", 1, 0.50, 0)
-				ChangeChatColor("INSTANCE_CHAT_LEADER", 1, 0.28, 0.04)
-			end
-		end
-
 		-- Manage zoom level
 		if LeaPlusDB["ManageZoomLevel"] == "On" then
 			if wipe or (not wipe and LeaPlusLC["ManageZoomLevel"] == "Off") then
@@ -6350,14 +6403,13 @@
 			end
 		end
 
-		-- Toggle enemy plates
-		if LeaPlusDB["AutoEnName"] == "On" then
-			if wipe or (not wipe and LeaPlusLC["AutoEnName"] == "Off") then
-				SetCVar("nameplateShowEnemies", "0")
-				SetCVar("nameplateShowEnemyPets", "1")
-				SetCVar("nameplateShowEnemyGuardians", "1")
-				SetCVar("nameplateShowEnemyTotems", "1")
-				SetCVar("ShowClassColorInNameplate", "0")
+		-- Universal group color
+		if LeaPlusDB["UnivGroupColor"] == "On" then
+			if wipe or (not wipe and LeaPlusLC["UnivGroupColor"] == "Off") then
+				ChangeChatColor("RAID", 1, 0.50, 0)
+				ChangeChatColor("RAID_LEADER", 1, 0.28, 0.04)
+				ChangeChatColor("INSTANCE_CHAT", 1, 0.50, 0)
+				ChangeChatColor("INSTANCE_CHAT_LEADER", 1, 0.28, 0.04)
 			end
 		end
 
@@ -6600,6 +6652,12 @@
 		Side.t:SetAllPoints()
 		Side.t:SetTexture(0.05, 0.05, 0.05, 0.9)
 
+		-- Create draggable title region
+		local tBox = Side:CreateTitleRegion()
+		tBox:SetPoint("TOPLEFT", 0, 0)
+		tBox:SetPoint("TOPRIGHT", 0, 0)
+		tBox:SetHeight(50)
+
 		-- Set alpha to match main panel
 		Side:HookScript("OnShow", function()
 			if LeaPlusLC["PlusPanelAlphaCheck"] == "On" then
@@ -6636,19 +6694,6 @@
 		LeaPlusLC["PageF"]:HookScript("OnShow", function()
 			if Side:IsShown() then LeaPlusLC["PageF"]:Hide(); end
 		end)
-
-		-- Allow movement
-		Side:SetMovable(true);
-		Side:RegisterForDrag("LeftButton");
-		Side:SetScript("OnDragStart", function()
-			if IsControlKeyDown() then 
-				Side:StartMoving();
-			end;
-		end);
-		Side:SetScript("OnDragStop", function ()
-			Side:StopMovingOrSizing();
-			Side:SetUserPlaced(false);
-		end);
 
 		-- Return the frame
 		return Side
@@ -6938,9 +6983,9 @@
 			dditem:SetScript("OnEnter", function() dditem.t:Show() end)
 			dditem:SetScript("OnLeave", function() dditem.t:Hide() end)
 			dditem:SetScript("OnClick", function()
-				ddlist:Hide();
 				LeaPlusLC[ddname] = k
 				value:SetText(LeaPlusLC[ddname.."Table"][k])
+				ddlist:Hide(); -- Must be last as other functions hook it
 			end)
 
 			-- Show list when button is clicked
@@ -6958,6 +7003,10 @@
 					end
 				end
 			end)
+
+			-- Expand the clickable area of the button to include the entire menu width
+			dbtn:SetHitRectInsets(-width+28, 0, 0, 0);
+
 		end
 
 		return frame
@@ -7320,12 +7369,12 @@
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "AutoEnName"				, 	"Toggle enemy plates*"			,	340, -192, 	"If checked, enemy nameplates will be enabled automatically when you enter combat and disabled when combat ends.\n\n* Requires UI reload.  After the reload, a configuration button will be available to the right.")
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "ClassColPlayer"			, 	"Player in class color*"		,	340, -212, 	"If checked, the player frame background will be shown in class color.\n\n* Requires UI reload.")
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "ClassColTarget"			, 	"Target in class color*"		,	340, -232, 	"If checked, the target and focus frame backgrounds will be shown in class color.\n\n* Requires UI reload.")
-	LeaPlusLC:MakeCB(LeaPlusLC[pg], "ShowElitePlayerChain"		, 	"Show player chain*"			,	340, -252, 	"If checked, the player frame will have an elite gold chain around the portrait.\n\n* Requires UI reload.  After the reload, the checkbox control below will be available.")
-	LeaPlusLC:MakeCB(LeaPlusLC[pg], "ShowRarePlayerChain"		, 	"Make it silver"				,	360, -272, 	"If checked, the player chain will be silver instead of gold.")
+	LeaPlusLC:MakeCB(LeaPlusLC[pg], "ShowPlayerChain"			, 	"Show player chain*"			,	340, -252, 	"If checked, you will be able to show a rare, elite or rare elite chain around the player frame.\n\n* Requires UI reload.  After the reload, a configuration button will be available to the right.")
 
 	LeaPlusLC:CfgBtn("MoveTooltipButton", LeaPlusCB["TipModEnable"], "Click to modify the tooltip settings.  Move the tooltip by dragging the blue overlay frame.")
 	LeaPlusLC:CfgBtn("ModTipMouseBtn", LeaPlusCB["TipAnchorToMouse"], "Click to change the anchor to mouse pointer settings.\n\nYou can change the tooltip anchor (this is the fixed part of the tooltip), the offsets (distance from the pointer) and the alpha setting (transparency).\n\nIn addition, you can hide tooltips during combat.  If you enable this option, you can show tooltips temporarily by holding down the SHIFT key.\n\nNote that anchor to mouse settings apply only to tooltips in the game world and not to the UI.")
 	LeaPlusLC:CfgBtn("ModEnPanelBtn", LeaPlusCB["AutoEnName"], "Click to modify the enemy nameplate settings.")
+	LeaPlusLC:CfgBtn("ModPlayerChain", LeaPlusCB["ShowPlayerChain"], "Click to modify the player chain settings.")
 
 ----------------------------------------------------------------------
 -- 	L88: Page 7: System
@@ -7361,7 +7410,7 @@
 	pg = "Page8";
 
 	LeaPlusLC:MakeTx(LeaPlusLC[pg], "Settings"					, 146, -72);
-	LeaPlusLC:MakeCB(LeaPlusLC[pg], "ShowMinimapIcon"			, "Show minimap button*"			, 146, -92,		"If checked, a minimap button will be available.\n\nLeft-click - Toggle options.\n\nRight-click - Toggle errors (if enabled, red while showing).\n\nMiddle-click - Toggle Recount (if installed).\n\nSHIFT/Left-click - Toggle music.\n\nSHIFT/Right-click - Toggle coordinates (if enabled).\n\nCTRL/Left-click - Toggle minimap target tracking.\n\nCTRL/SHIFT/Left-click - Toggle Zygor (if installed)\n\nCTRL/SHIFT/Right-click - Toggle windowed mode.\n\n* Requires UI reload.")
+	LeaPlusLC:MakeCB(LeaPlusLC[pg], "ShowMinimapIcon"			, "Show minimap button*"			, 146, -92,		"If checked, a minimap button will be available.\n\nLeft-click - Toggle options.\n\nRight-click - Toggle errors (if enabled, red while showing).\n\nSHIFT/Left-click - Toggle music.\n\nSHIFT/Right-click - Toggle coordinates (if enabled).\n\nCTRL/Left-click - Toggle minimap target tracking.\n\nCTRL/SHIFT/Left-click - Toggle Zygor (if installed)\n\nCTRL/SHIFT/Right-click - Toggle windowed mode.\n\n* Requires UI reload.")
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "ShowStartTag"				, "Show startup message"			, 146, -112, 	"If checked, the addon name and version will be shown in chat when you login or reload your UI.")
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "VersionChecker"			, "Show version warning"			, 146, -132, 	"If checked, a warning will be shown on startup if the version of Leatrix Plus that you are using was designed for an older World of Warcraft content patch.\n\nNote that this will only check for major version differences (such as using Leatrix Plus 5.1.xx with World of Warcraft 5.2.xx).\n\nIt will not check to confirm that you are using the very latest version of Leatrix Plus.\n\nIt's recommended that you leave this box checked unless you are using Leatrix Plus with the public test realm.")
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "OpenPlusAtHome"			, "Show home on startup"			, 146, -152, 	"If checked, the home page will always be shown when you open Leatrix Plus.\n\nIf unchecked, Leatrix Plus will open with the page that you were on when you last closed it.")

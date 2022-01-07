@@ -1,7 +1,7 @@
 ## Interface: 50400
 ## Title: Leatrix Plus
-## Notes: Version 5.4.11
-## Version: 5.4.11
+## Notes: Version 5.4.14
+## Version: 5.4.14
 ## Author: Leatrix
 ## SavedVariables: LeaPlusDB
 ## SavedVariablesPerCharacter: LeaPlusDC
